@@ -20,8 +20,8 @@ INFLUXDB_DATABASE = 'home_db'
 MQTT_ADDRESS = 'mosquitto'
 MQTT_USER = 'mqttuser'
 MQTT_PASSWORD = 'mqttpassword'
-MQTT_TOPIC = 'home/+/+'  # [bme280|mijia]/[temperature|humidity|battery|status]
-MQTT_REGEX = 'home/([^/]+)/([^/]+)'
+MQTT_TOPIC = 'aqmon/+/+/+'  # e.g. hXXX-room/temperature/degrees
+MQTT_REGEX = 'aqmon/([^/]+)/([^/]+)/([^/]+)'
 MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
 
 influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None)
@@ -50,9 +50,8 @@ def on_message(client, userdata, msg):
 def _parse_mqtt_message(topic, payload):
     match = re.match(MQTT_REGEX, topic)
     if match:
-        location = match.group(1)
-        measurement = match.group(2)
-        if measurement == 'status':
+        location, measurement, property = match.group(1), match.group(2), match.group(3)
+        if property not in ['degrees','percentage','concentration']:
             return None
         return SensorData(location, measurement, float(payload))
     else:

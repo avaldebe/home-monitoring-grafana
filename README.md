@@ -5,11 +5,9 @@ Blog post: [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](h
 
 ## Projects
 
-- `01-mosquitto`: Mosquitto Docker container configuration files
-- `02-bridge`: Python script that receives MQTT data and persists those to InfluxDB
-- `03-bme280_mqtt`: Arduino sketch file for the ESP8266 and the BME280 that publishes sensor data to MQTT
-- `04-mijia_ble_mqt`: Python script that connects to a BTLE MiJia Temperature & Humidity sensor and publishes data to MQTT
-- `05-dht22_mqtt`: Arduino sketch file for the ESP8266 and the DHT22 that publishes sensor data to MQTT
+- `mosquitto`: Mosquitto Docker container configuration files
+- `mqtt-bridge`: Python script that receives MQTT data and persists those to InfluxDB
+- `mqtt-pypms`: Python script that reads a PMSx003 sensor and publishes sensor data to MQTT
 
 
 ## Setup
@@ -21,22 +19,22 @@ For the example, a Raspberry Pi 3 B+ with Raspbian will be used.
 
 Set the `DATA_DIR` environment variable to the path where will be stored local data (e.g. in `/tmp`):
 
-```sh
-export DATA_DIR=/tmp
+```bash
+export DATA_DIR=/mnt/aqmon
 ```
 
 Create data directories with write access:
 
-```sh
-mkdir -p ${DATA_DIR}/mosquitto/data ${DATA_DIR}/mosquitto/log ${DATA_DIR}/influxdb ${DATA_DIR}/grafana
-sudo chown -R 1883:1883 ${DATA_DIR}/mosquitto
-sudo chown -R 472:472 ${DATA_DIR}/grafana
+```bash
+mkdir -p $DATA_DIR/mosquitto/data $DATA_DIR/mosquitto/log $DATA_DIR/influxdb $DATA_DIR/grafana
+sudo chown -R 1883:1883 $DATA_DIR/mosquitto
+sudo chown -R 472:472 $DATA_DIR/grafana
 ```
 
 Run docker compose:
 
-```sh
-$ docker-compose up -d
+```bash
+docker-compose up -d
 ```
 
 Mosquitto username and passwords are `mqttuser` and `mqttpassword`.
@@ -45,15 +43,11 @@ Mosquitto username and passwords are `mqttuser` and `mqttpassword`.
 
 ## Sensors
 
-Sensors should send data to the mosquitto broker to the following topic:  
-`home/{peripheralName}/{temperature|humidity|battery|status}`.  
-For example: `home/bme280/temperature`.
+Sensors should send data to the mosquitto broker following the [Homie][]pec:
+`aqmon/{device_id}/{node_id}/{property}` 
+For example: `aqmon/livingroom/pm10/concentration`.
 
-Arduino sketches for the ESP8266 are provided to communicate with a BME280 (`03-bme280_mqtt`) and a DHT22 (`05-dht22_mqtt`).  
-Before flashing, you need to change the `WIFI_SSID`, `WIFI_PASSWORD`, and `MQTT_SERVER` constants to your WiFi information and MQTT server address.
-
-You can also use a Xiaomi MiJia Temperature & Humidity Sensor.  
-For more information, see `04-mijia_ble_mqtt/README.md`.
+[Homie]: https://homieiot.github.io/specification/spec-core-v2_0_0
 
 
 ## Grafana setup
@@ -86,11 +80,14 @@ For more information, see `04-mijia_ble_mqtt/README.md`.
 
 To change default MQTT username and password, run the following, replacing `[USER]` and `[PASSWORD]`:
 
-```sh
-$ cd 01-mosquitto
-$ echo -n "" > users
-$ docker run --rm -v `pwd`/mosquitto.conf:/mosquitto/config/mosquitto.conf -v `pwd`/users:/mosquitto/config/users eclipse-mosquitto:1.5 mosquitto_passwd -b /mosquitto/config/users [USER] [PASSWORD]
-$ cd -
+```bash
+cd mosquitto
+echo -n "" > users
+docker run --rm \
+  -v $PWD/mosquitto.conf:/mosquitto/config/mosquitto.conf \
+  -v $PWD/users:/mosquitto/config/users \
+  eclipse-mosquitto:1.5 mosquitto_passwd -b /mosquitto/config/users [USER] [PASSWORD]
+cd -
 ```
 
 Then, update the `MQTT_USER` and `MQTT_PASSWORD` constants in all the subdirectories, and launch docker compose again.
@@ -98,17 +95,26 @@ Then, update the `MQTT_USER` and `MQTT_PASSWORD` constants in all the subdirecto
 
 ## Alternative: Using docker manually instead of docker compose
 
-```sh
-$ cd 01-mosquitto
-$ docker run -d -p 1883:1883 -v $PWD/mosquitto.conf:/mosquitto/config/mosquitto.conf -v $PWD/users:/mosquitto/config/users -v $DATA_DIR/mosquitto/data:/mosquitto/data -v $DATA_DIR/mosquitto/log:/mosquitto/log --name mosquitto eclipse-mosquitto:1.5
-$ cd -
+```bash
+cd mosquitto
+docker run -d -p 1883:1883 \
+  -v $PWD/mosquitto.conf:/mosquitto/config/mosquitto.conf \
+  -v $PWD/users:/mosquitto/config/users \
+  -v $DATA_DIR/mosquitto/data:/mosquitto/data \
+  -v $DATA_DIR/mosquitto/log:/mosquitto/log \
+  --name mosquitto eclipse-mosquitto:1.5
+cd -
 
-$ docker run -d -p 8086:8086 -v $DATA_DIR/influxdb:/var/lib/influxdb --name influxdb influxdb:1.7
+docker run -d -p 8086:8086 \
+  -v $DATA_DIR/influxdb:/var/lib/influxdb \
+  --name influxdb influxdb:1.7
 
-$ cd 02-bridge
-$ docker build -t nilhcem/mqttbridge .
-$ docker run -d --name mqttbridge nilhcem/mqttbridge
-$ cd -
+cd mqtt-bridge
+docker build -t avaldebe/mqttbridge .
+docker run -d --name mqttbridge avaldebe/mqttbridge
+cd -
 
-$ docker run -d -p 3000:3000 -v $DATA_DIR/grafana:/var/lib/grafana --name=grafana grafana/grafana:5.4.3
+docker run -d -p 3000:3000 \
+  -v $DATA_DIR/grafana:/var/lib/grafana \
+  --name=grafana grafana/grafana:5.4.3
 ```

@@ -2,20 +2,20 @@
 
 ## Build
 
-```sh
-$ docker build -t nilhcem/mqttbridge .
+```bash
+docker build -t avaldebe/mqttbridge .
 ```
 
 
 ## Run
 
-```sh
-$ docker run -d --name mqttbridge nilhcem/mqttbridge
+```bash
+docker run -d --name mqttbridge avaldebe/mqttbridge
 ```
 
 
 ## Dev
 
-```sh
-$ docker run -it --rm -v `pwd`:/app --name python python:3.7-alpine sh
+```bash
+docker run -it --rm -v $PWD:/app --name python python:3.7-alpine sh
 ```

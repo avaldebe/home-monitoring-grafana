@@ -1,4 +1,4 @@
-version: '3'
+version: '2'
 
 services:
   mosquitto:
@@ -35,7 +35,7 @@ services:
 
   mqttbridge:
     build: ./mqtt-bridge
-    image: nilhcem/mqttbridge
+    image: avaldebe/mqttbridge
     container_name: mqttbridge
     depends_on:
       - mosquitto
