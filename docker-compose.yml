@@ -41,3 +41,13 @@ services:
       - mosquitto
       - influxdb
     restart: always
+
+  mqttpypms:
+    build: ./mqtt-pypms
+    image: avaldebe/mqttpypms
+    container_name: mqttpypms
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    depends_on:
+      - mosquitto
+    restart: always
