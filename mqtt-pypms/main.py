@@ -23,26 +23,28 @@ def on_connect(client, userdata, flags, rc):
     client.publish(MQTT_TOPIC_STATE, 'true', 1, True)
 
 def read_pms(device='/dev/ttyUSB0'):
-    dev = serial(device, 9600, timeout=0)
-    if not dev.isOpen():
-        dev.open()
+    with serial(device, 9600, timeout=0) as dev:
         dev.write(b'\x42\x4D\xE1\x00\x00\x01\x70') # set passive mode
-        while dev.in_waiting:
-            print(dev.read())
+        dev.flush()
+        while dev.is_open:
+            dev.reset_input_buffer()
+            dev.write(b"\x42\x4D\xE2\x00\x00\x01\x71")  # passive mode read
+            dev.flush()
+            while dev.in_waiting < 32:
+                continue
 
-    dev.write(b'\x42\x4D\xE2\x00\x00\x01\x71') # passive mode read
-    dev.flush()
-    while dev.in_waiting < 32:
-        continue
-
-    buffer = dev.read(32)
-    #print(buffer)
-    assert len(buffer) == 32
-    msg = struct.unpack(">HHHHHHHHHHHHHHHH", bytes(buffer))
-    assert msg[0] == 0x424D
-    assert msg[1] == 28
-    assert msg[-1] == sum(buffer[:-2])
-    return {'pm01': msg[5], 'pm25': msg[6], 'pm10': msg[7]}
+            buffer = dev.read(32)
+            # print(buffer)
+            try:
+                assert len(buffer) == 32, "message total length"
+                msg = struct.unpack(">HHHHHHHHHHHHHHHH", bytes(buffer))
+                assert msg[0] == 0x424D, "message start header"
+                assert msg[1] == 28, "message body length"
+                assert msg[-1] == sum(buffer[:-2]), "message checksum"
+            except AssertionError as e:
+                print(e)
+            else:
+                yield {"pm01": msg[5], "pm25": msg[6], "pm10": msg[7]}
 
 def main():
     mqttc = mqtt.Client(MQTT_CLIENT_ID)
@@ -53,20 +55,10 @@ def main():
     mqttc.connect(MQTT_ADDRESS, 1883, 60)
     mqttc.loop_start()
 
-    last_msg_time = time.time()
-    while True:
-        try:
-            pm = read_pms()   
-        except AssertionError:
-            pass
-        else:
-            for k,v in pm.items():
-                mqttc.publish(MQTT_TOPIC_PMS%k, v, 1, True)
-            last_msg_time = time.time()
-        finally:
-            delay = MQTT_PUBLISH_DELAY - (time.time() - last_msg_time)
-            if delay > 0:
-                time.sleep(delay)
+    for pm in read_pms():
+        for k,v in pm.items():
+            mqttc.publish(MQTT_TOPIC_PMS%k, v, 1, True)
+        time.sleep(MQTT_PUBLISH_DELAY)
 
 if __name__ == '__main__':
     print('PMSx003 to MQTT with PySerial')
