@@ -1,21 +1,12 @@
-# PMSx003 to MQTT with PySerial
-
-## Build
+# PMSx003 to MQTT with PyPMS
 
 ```bash
+# build
 docker build -t avaldebe/mqttpypms .
-```
 
-
-## Run
-
-```bash
+# run
 docker run -d --name mqttpypms avaldebe/mqttpypms
-```
 
-
-## Dev
-
-```bash
-docker run -it --rm -v $PWD:/app --name python python:3.7-alpine sh
+# debug/develop
+docker run -it --rm --name python python:3.7-alpine sh
 ```

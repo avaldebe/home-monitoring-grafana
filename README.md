@@ -7,7 +7,7 @@ Blog post: [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](h
 
 - `mosquitto`: Mosquitto Docker container configuration files
 - `mqtt-bridge`: Python script that receives MQTT data and persists those to InfluxDB
-- `mqtt-pypms`: Python script that reads a PMSx003 sensor and publishes sensor data to MQTT
+- `mqtt-pypms`: Python util that reads a PMSx003 sensor and publishes sensor data to MQTT
 
 
 ## Setup
@@ -108,6 +108,11 @@ cd -
 docker run -d -p 8086:8086 \
   -v $DATA_DIR/influxdb:/var/lib/influxdb \
   --name influxdb influxdb:1.7
+
+cd mqtt-pypms
+docker build -t avaldebe/mqttpypms .
+docker run -d --name mqttpypms avaldebe/mqttpypms
+cd -
 
 cd mqtt-bridge
 docker build -t avaldebe/mqttbridge .
