@@ -34,7 +34,9 @@ services:
     restart: always
 
   mqttbridge:
-    build: ./mqtt-bridge
+    build:
+      context: .
+      dockerfile: Dockerfile.mqtt-bridge
     image: avaldebe/mqttbridge
     container_name: mqttbridge
     depends_on:
@@ -43,7 +45,9 @@ services:
     restart: always
 
   mqttpypms:
-    build: ./mqtt-pypms
+    build:
+      context: .
+      dockerfile: Dockerfile.mqtt-pypms
     image: avaldebe/mqttpypms
     container_name: mqttpypms
     devices:

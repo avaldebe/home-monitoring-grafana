@@ -2,11 +2,11 @@
 
 Built uppon [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana)  
 
-## Local images
+## Local files
 
-- `mosquitto`: Mosquitto Docker container configuration files
-- `mqtt-bridge`: Python util that receives MQTT data and persists those to InfluxDB
-- `mqtt-pypms`: Python util that reads a PMSx003 sensor and publishes sensor data to MQTT
+- `mosquitto/`: configuration files for mosquitto container 
+- `Dockerfile.mqtt-bridge`: Python util that receives MQTT data and persists those to InfluxDB
+- `Dockerfile.mqtt-pypms`: Python util that reads a PMSx003 sensor and publishes sensor data to MQTT
 
 ## Setup
 
@@ -19,26 +19,20 @@ Set the `DATA_DIR` environment variable to the path where will be stored local d
 
 ```bash
 export DATA_DIR=/mnt/aqmon
+# save for use on a later sessions
 echo "DATA_DIR=$DATA_DIR" >> .env
-```
 
-Create data directories with write access:
-
-```bash
+# create data directories with write access
 mkdir -p $DATA_DIR/mosquitto/data $DATA_DIR/mosquitto/log $DATA_DIR/influxdb $DATA_DIR/grafana
 sudo chown -R 1883:1883 $DATA_DIR/mosquitto
 sudo chown -R 472:472 $DATA_DIR/grafana
-```
 
-Run docker compose:
-
-```bash
+# launch/update containers
 docker-compose up -d
 ```
 
 Mosquitto username and passwords are `mqttuser` and `mqttpassword`.
- To change these, see the `Optional: Update mosquitto credentials` section.
-
+To change these, see the `Optional: Update mosquitto credentials` section.
 
 ## Sensors
 
@@ -47,7 +41,6 @@ Sensors should send data to the mosquitto broker following the [Homie][]pec:
 For example: `aqmon/livingroom/pm10/concentration`.
 
 [Homie]: https://homieiot.github.io/specification/spec-core-v2_0_0
-
 
 ## Grafana setup
 
@@ -65,7 +58,7 @@ For example: `aqmon/livingroom/pm10/concentration`.
   - Add Graph Panel
   - Edit Panel
   - Data Source: InfluxDB
-  - FROM: `[default] [temperature] WHERE [location]=[livingroom]`
+  - FROM: `[default] [pm10] WHERE [location]=[livingroom]`
   - SELECT: `field(value)`
   - FORMAT AS: `Time series`
   - Draw mode: Lines
@@ -74,51 +67,47 @@ For example: `aqmon/livingroom/pm10/concentration`.
     - Unit: Temperature > Celcius
   - Panel title: Temperature (°C)
 
-
 ## Optional: Update mosquitto credentials
 
 To change default MQTT username and password, run the following, replacing `[USER]` and `[PASSWORD]`:
 
 ```bash
-cd mosquitto
-echo -n "" > users
+echo -n "" > ./mosquitto/users
 docker run --rm \
-  -v $PWD/mosquitto.conf:/mosquitto/config/mosquitto.conf \
-  -v $PWD/users:/mosquitto/config/users \
-  eclipse-mosquitto:1.5 mosquitto_passwd -b /mosquitto/config/users [USER] [PASSWORD]
-cd -
+  -v ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf \
+  -v ./mosquitto/users:/mosquitto/config/users \
+  eclipse-mosquitto:1.6.12 \
+  mosquitto_passwd -b /mosquitto/config/users [USER] [PASSWORD]
 ```
 
 Then, update the `MQTT_USER` and `MQTT_PASSWORD` constants in all the subdirectories, and launch docker compose again.
 
-
 ## Alternative: Using docker manually instead of docker compose
 
 ```bash
-cd mosquitto
+# mosquitto
 docker run -d -p 1883:1883 \
-  -v $PWD/mosquitto.conf:/mosquitto/config/mosquitto.conf \
-  -v $PWD/users:/mosquitto/config/users \
+  -v ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf \
+  -v ./mosquitto/users:/mosquitto/config/users \
   -v $DATA_DIR/mosquitto/data:/mosquitto/data \
   -v $DATA_DIR/mosquitto/log:/mosquitto/log \
-  --name mosquitto eclipse-mosquitto:1.5
-cd -
+  --name mosquitto eclipse-mosquitto:1.6.12
 
+# influxdb
 docker run -d -p 8086:8086 \
   -v $DATA_DIR/influxdb:/var/lib/influxdb \
-  --name influxdb influxdb:1.7
+  --name influxdb influxdb:1.8.3
 
-cd mqtt-pypms
-docker build -t avaldebe/mqttpypms .
-docker run -d --name mqttpypms avaldebe/mqttpypms
-cd -
-
-cd mqtt-bridge
-docker build -t avaldebe/mqttbridge .
-docker run -d --name mqttbridge avaldebe/mqttbridge
-cd -
-
+# grafana
 docker run -d -p 3000:3000 \
   -v $DATA_DIR/grafana:/var/lib/grafana \
-  --name=grafana grafana/grafana:5.4.3
+  --name=grafana grafana/grafana:7.2.2
+
+# mqttbridge
+docker build -f Dockerfile.mqtt-bridge -t avaldebe/mqttbridge .
+docker run -d --name mqttbridge avaldebe/mqttbridge
+
+# mqttpypms
+docker build -f Dockerfile.mqtt-pypms -t avaldebe/mqttpypms .
+docker run -d --name mqttpypms avaldebe/mqttpypms
 ```
