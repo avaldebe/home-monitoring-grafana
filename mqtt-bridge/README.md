@@ -1,21 +1,12 @@
-# MQTT to InfluxDB Bridge
-
-## Build
+# MQTT to InfluxDB Bridge with PyPMS
 
 ```bash
+# build
 docker build -t avaldebe/mqttbridge .
-```
 
-
-## Run
-
-```bash
+# run
 docker run -d --name mqttbridge avaldebe/mqttbridge
-```
 
-
-## Dev
-
-```bash
-docker run -it --rm -v $PWD:/app --name python python:3.7-alpine sh
+# debug/develop
+docker run -it --rm --name python python:3.7-alpine sh
 ```

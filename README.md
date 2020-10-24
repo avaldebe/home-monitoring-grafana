@@ -1,14 +1,12 @@
 # Home sensor data monitoring with MQTT, InfluxDB and Grafana
 
-Blog post: [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana)  
+Built uppon [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana)  
 
-
-## Projects
+## Local images
 
 - `mosquitto`: Mosquitto Docker container configuration files
-- `mqtt-bridge`: Python script that receives MQTT data and persists those to InfluxDB
+- `mqtt-bridge`: Python util that receives MQTT data and persists those to InfluxDB
 - `mqtt-pypms`: Python util that reads a PMSx003 sensor and publishes sensor data to MQTT
-
 
 ## Setup
 
@@ -21,6 +19,7 @@ Set the `DATA_DIR` environment variable to the path where will be stored local d
 
 ```bash
 export DATA_DIR=/mnt/aqmon
+echo "DATA_DIR=$DATA_DIR" >> .env
 ```
 
 Create data directories with write access:
@@ -66,7 +65,7 @@ For example: `aqmon/livingroom/pm10/concentration`.
   - Add Graph Panel
   - Edit Panel
   - Data Source: InfluxDB
-  - FROM: `[default] [temperature] WHERE [location]=[bme280]`
+  - FROM: `[default] [temperature] WHERE [location]=[livingroom]`
   - SELECT: `field(value)`
   - FORMAT AS: `Time series`
   - Draw mode: Lines
