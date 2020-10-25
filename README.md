@@ -20,13 +20,20 @@ Set the `DATA_DIR` environment variable to the path where will be stored local d
 
 ```bash
 export DATA_DIR=/mnt/aqmon
-# save for use on a later sessions
-echo "DATA_DIR=$DATA_DIR" >> .env
 
 # create data directories with write access
 mkdir -p $DATA_DIR/mosquitto/data $DATA_DIR/mosquitto/log $DATA_DIR/influxdb $DATA_DIR/grafana
 sudo chown -R 1883:1883 $DATA_DIR/mosquitto
 sudo chown -R 472:472 $DATA_DIR/grafana
+
+# save env values
+cat > .env << _EOF
+DATA_DIR=$DATA_DIR
+MQTT_USER=mqttuser
+MQTT_PASS=mqttpassword
+DB_USER=root
+DB_PASS=root
+_EOF
 
 # launch/update containers
 docker-compose up -d
@@ -70,22 +77,42 @@ For example: `aqmon/livingroom/pm10/concentration`.
 
 ## Optional: Update mosquitto credentials
 
-To change default MQTT username and password, run the following, replacing `[USER]` and `[PASSWORD]`:
+To change default MQTT username and password
 
 ```bash
+# source old new env values
+source .env
+# new username/password
+MQTT_USER=new_username
+MQTT_PASS=new_password
+
+# replace username/password
 echo -n "" > ./mosquitto/users
 docker run --rm \
   -v ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf \
   -v ./mosquitto/users:/mosquitto/config/users \
   eclipse-mosquitto:1.6.12 \
-  mosquitto_passwd -b /mosquitto/config/users [USER] [PASSWORD]
-```
+  mosquitto_passwd -b /mosquitto/config/users $MQTT_USER $MQTT_PASS
 
-Then, update the `MQTT_USER` and `MQTT_PASSWORD` constants in all the subdirectories, and launch docker compose again.
+# write new env values
+cat > .env << _EOF
+DATA_DIR=$DATA_DIR
+MQTT_USER=$MQTT_USER
+MQTT_PASS=$MQTT_PASS
+DB_USER=$DB_USER
+DB_PASS=$DB_PASS
+_EOF
+
+# launch/update containers
+docker-compose up -d
+```
 
 ## Alternative: Using docker manually instead of docker compose
 
 ```bash
+# source env values
+source .env
+
 # mosquitto
 docker run -d -p 1883:1883 \
   -v ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf \
@@ -111,9 +138,9 @@ docker build -t avaldebe/pypms .
 docker run -d --name mqttbridge avaldebe/pypms \
   pms bridge \
     --mqtt-topic "aqmon/+/+/+" --mqtt-host mosquitto \
-    --mqtt-user mqttuser --mqtt-pass mqttpassword  \
+    --mqtt-user $MQTT_USER --mqtt-pass $MQTT_PASS  \
     --db-host influxdb --db-name home_db \
-    --db-user root --db-pass root
+    --db-user $DB_USER --db-pass $DB_PASS
 
 # mqttpypms
 docker run -d --name mqttpypms avaldebe/pypms \
@@ -121,5 +148,5 @@ docker run -d --name mqttpypms avaldebe/pypms \
     --sensor-model PMSx003 --serial-port /dev/ttyUSB0 --interval 60 \
   mqtt \
     --topic "aqmon/h501-livingroom" --mqtt-host mosquitto \
-    --mqtt-user mqttuser  --mqtt-pass mqttpassword
+    --mqtt-user $MQTT_USER --mqtt-pass $MQTT_PASS
 ```
