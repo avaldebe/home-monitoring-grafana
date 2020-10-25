@@ -34,24 +34,41 @@ services:
     restart: always
 
   mqttbridge:
-    build:
-      context: .
-      dockerfile: Dockerfile.mqtt-bridge
-    image: avaldebe/mqttbridge
+    image: avaldebe/pypms
     container_name: mqttbridge
     depends_on:
       - mosquitto
       - influxdb
+    build: .
+    command: ["pms", "bridge",
+        "--mqtt-topic", "aqmon/+/+/+",
+        "--mqtt-host", "mosquitto",
+        "--mqtt-user", "mqttuser",
+        "--mqtt-pass", "mqttpassword",
+        "--db-host", "influxdb",
+        "--db-user", "root",
+        "--db-pass", "root",
+        "--db-name", "home_db"
+    ]
     restart: always
 
   mqttpypms:
-    build:
-      context: .
-      dockerfile: Dockerfile.mqtt-pypms
-    image: avaldebe/mqttpypms
+    image: avaldebe/pypms
     container_name: mqttpypms
-    devices:
-      - "/dev/ttyUSB0:/dev/ttyUSB0"
     depends_on:
       - mosquitto
+      - mqttbridge
+    build: .
+    command: ["pms",
+        "--sensor-model", "PMSx003",
+        "--serial-port", "/dev/ttyUSB0",
+        "--interval", "60",
+        "mqtt",
+        "--topic", "aqmon/h501-livingroom",
+        "--mqtt-host", "mosquitto",
+        "--mqtt-user", "mqttuser",
+        "--mqtt-pass", "mqttpassword"
+    ]
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
     restart: always

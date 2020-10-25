@@ -1,5 +1,20 @@
 {
     "python.linting.pylintEnabled": false,
     "python.linting.mypyEnabled": false,
-    "python.linting.enabled": false
+    "python.linting.enabled": false,
+    "cSpell.ignoreWords": [
+        "avaldebe",
+        "livingroom",
+        "mqttbridge",
+        "mqttpassword",
+        "mqttpypms",
+        "mqttuser",
+    ],
+    "cSpell.words": [
+        "grafana",
+        "mosquitto",
+        "mkdir",
+        "pypms",
+        "raspbian"
+    ]
 }

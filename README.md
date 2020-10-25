@@ -1,12 +1,13 @@
 # Home sensor data monitoring with MQTT, InfluxDB and Grafana
 
-Built uppon [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana)  
+Built upon [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana)  
 
 ## Local files
 
-- `mosquitto/`: configuration files for mosquitto container 
-- `Dockerfile.mqtt-bridge`: Python util that receives MQTT data and persists those to InfluxDB
-- `Dockerfile.mqtt-pypms`: Python util that reads a PMSx003 sensor and publishes sensor data to MQTT
+- `mosquitto/`: configuration files for mosquitto container
+- `Dockerfile`: PyPMS is a python util that
+  - reads a PMSx003 sensor and publishes sensor data to MQTT
+  - receives MQTT data and persists those to InfluxDB
 
 ## Setup
 
@@ -36,8 +37,8 @@ To change these, see the `Optional: Update mosquitto credentials` section.
 
 ## Sensors
 
-Sensors should send data to the mosquitto broker following the [Homie][]pec:
-`aqmon/{device_id}/{node_id}/{property}` 
+Sensors should send data to the mosquitto broker following the
+[Homie][] spec: `aqmon/{device_id}/{node_id}/{property}`
 For example: `aqmon/livingroom/pm10/concentration`.
 
 [Homie]: https://homieiot.github.io/specification/spec-core-v2_0_0
@@ -64,7 +65,7 @@ For example: `aqmon/livingroom/pm10/concentration`.
   - Draw mode: Lines
   - Stacking & Null value: Null value [connected]
   - Left Y
-    - Unit: Temperature > Celcius
+    - Unit: Temperature > Celsius
   - Panel title: Temperature (°C)
 
 ## Optional: Update mosquitto credentials
@@ -103,11 +104,22 @@ docker run -d -p 3000:3000 \
   -v $DATA_DIR/grafana:/var/lib/grafana \
   --name=grafana grafana/grafana:7.2.2
 
+# PyPMS
+docker build -t avaldebe/pypms .
+
 # mqttbridge
-docker build -f Dockerfile.mqtt-bridge -t avaldebe/mqttbridge .
-docker run -d --name mqttbridge avaldebe/mqttbridge
+docker run -d --name mqttbridge avaldebe/pypms \
+  pms bridge \
+    --mqtt-topic "aqmon/+/+/+" --mqtt-host mosquitto \
+    --mqtt-user mqttuser --mqtt-pass mqttpassword  \
+    --db-host influxdb --db-name home_db \
+    --db-user root --db-pass root
 
 # mqttpypms
-docker build -f Dockerfile.mqtt-pypms -t avaldebe/mqttpypms .
-docker run -d --name mqttpypms avaldebe/mqttpypms
+docker run -d --name mqttpypms avaldebe/pypms \
+  pms \
+    --sensor-model PMSx003 --serial-port /dev/ttyUSB0 --interval 60 \
+  mqtt \
+    --topic "aqmon/h501-livingroom" --mqtt-host mosquitto \
+    --mqtt-user mqttuser  --mqtt-pass mqttpassword
 ```
