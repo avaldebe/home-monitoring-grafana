@@ -40,15 +40,12 @@ services:
       - mosquitto
       - influxdb
     build: .
+    # pms gets username/password from env vars, i.e .env
     env_file: .env
     command: ["pms", "bridge",
         "--mqtt-topic", "aqmon/+/+/+",
         "--mqtt-host", "mosquitto",
-        "--mqtt-user", "${MQTT_USER}",
-        "--mqtt-pass", "${MQTT_PASS}",
         "--db-host", "influxdb",
-        "--db-user", "${DB_USER}",
-        "--db-pass", "${DB_PASS}",
         "--db-name", "home_db"
     ]
     restart: always
@@ -59,6 +56,7 @@ services:
     depends_on:
       - mosquitto
       - mqttbridge
+    # pms gets username/password from env vars, i.e .env
     env_file: .env
     command: ["pms",
         "--sensor-model", "PMSx003",
@@ -66,9 +64,7 @@ services:
         "--interval", "60",
         "mqtt",
         "--topic", "aqmon/h501-livingroom",
-        "--mqtt-host", "mosquitto",
-        "--mqtt-user", "${MQTT_USER}",
-        "--mqtt-pass", "${MQTT_PASS}"
+        "--mqtt-host", "mosquitto"
     ]
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"

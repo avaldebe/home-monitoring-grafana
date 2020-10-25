@@ -5,9 +5,11 @@ Built upon [http://nilhcem.com/iot/home-monitoring-with-mqtt-influxdb-grafana](h
 ## Local files
 
 - `mosquitto/`: configuration files for mosquitto container
-- `Dockerfile`: PyPMS is a python util that
+- `Dockerfile`: [PyPMS][] is a python util that
   - reads a PMSx003 sensor and publishes sensor data to MQTT
   - receives MQTT data and persists those to InfluxDB
+
+[pypms]: https://pypi.org/project/pypms/
 
 ## Setup
 
@@ -134,19 +136,16 @@ docker run -d -p 3000:3000 \
 # PyPMS
 docker build -t avaldebe/pypms .
 
-# mqttbridge
-docker run -d --name mqttbridge avaldebe/pypms \
+# mqttbridge: pms gets username/password from env vars, i.e. .env
+docker run -d --env-file .env --name mqttbridge avaldebe/pypms \
   pms bridge \
     --mqtt-topic "aqmon/+/+/+" --mqtt-host mosquitto \
-    --mqtt-user $MQTT_USER --mqtt-pass $MQTT_PASS  \
-    --db-host influxdb --db-name home_db \
-    --db-user $DB_USER --db-pass $DB_PASS
+    --db-host influxdb --db-name home_db
 
-# mqttpypms
-docker run -d --name mqttpypms avaldebe/pypms \
+# mqttpypms: pms gets username/password from env vars, i.e. .env
+docker run -d --env-file .env --name mqttpypms avaldebe/pypms \
   pms \
     --sensor-model PMSx003 --serial-port /dev/ttyUSB0 --interval 60 \
   mqtt \
-    --topic "aqmon/h501-livingroom" --mqtt-host mosquitto \
-    --mqtt-user $MQTT_USER --mqtt-pass $MQTT_PASS
+    --topic "aqmon/h501-livingroom" --mqtt-host mosquitto
 ```
